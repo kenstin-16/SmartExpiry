@@ -1,0 +1,27 @@
+{
+  "name": "SmartExpiry",
+  "short_name": "SmartExpiry",
+  "description": "Track expiry dates. Save money. Stay safe.",
+  "start_url": "/SmartExpiry/index.html",
+  "scope": "/SmartExpiry/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "icons": [
+    {
+      "src": "SmartExpiry Logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "SmartExpiry Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "food"],
+  "lang": "en"
+}

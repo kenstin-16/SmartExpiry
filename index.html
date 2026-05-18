@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartExpiry — Track Expiry. Save Money. Stay Safe.</title>
+<link rel="stylesheet" href="style1.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0f1e">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+</head>
+<body class="landing-page">
+
+<!-- Animated background -->
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+<div class="grid-overlay"></div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <div class="logo-mark">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="14" stroke="url(#g1)" stroke-width="2"/>
+        <path d="M16 8v8l5 3" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="32" y2="32">
+            <stop offset="0%" stop-color="#3b82f6"/>
+            <stop offset="100%" stop-color="#22c55e"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <span class="brand-name">Smart<em>Expiry</em></span>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-ghost" onclick="goLogin()">Login</button>
+    <button class="btn-primary" onclick="goLogin()">Get Started →</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="badge-dot"></span>
+    Free PWA — Works Offline
+  </div>
+  <h1 class="hero-title">
+    Track Expiry.<br>
+    <span class="gradient-text">Save Money.</span><br>
+    Stay Safe.
+  </h1>
+  <p class="hero-sub">Never throw away expired products or risk your health again. SmartExpiry gives you smart alerts before things go bad.</p>
+  <div class="hero-cta">
+    <button class="btn-hero" onclick="goLogin()">
+      <span>Start Tracking Free</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <p class="hero-note">No credit card · Instant setup</p>
+  </div>
+
+  <!-- Floating stats -->
+  <div class="hero-stats">
+    <div class="stat-pill green-pill">
+      <span class="pill-dot green-dot"></span>
+      <span>12 Fresh items</span>
+    </div>
+    <div class="stat-pill yellow-pill">
+      <span class="pill-dot yellow-dot"></span>
+      <span>3 Expiring soon</span>
+    </div>
+    <div class="stat-pill red-pill">
+      <span class="pill-dot red-dot"></span>
+      <span>1 Expired</span>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⏰</div>
+      <h3>Smart Alerts</h3>
+      <p>Get notified 7 days before anything expires. Never get caught off guard.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Visual Dashboard</h3>
+      <p>Live charts showing your inventory health at a single glance.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">☁️</div>
+      <h3>Cloud Sync</h3>
+      <p>Your data syncs instantly across all devices via Firebase.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3>Install as App</h3>
+      <p>Works offline. Install on your phone for instant access anytime.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Install button -->
+<button id="installBtn" class="install-fab">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 19h18"/></svg>
+  Install App
+</button>
+
+<script>
+function goLogin(){ window.location.href = "login1.html"; }
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("javas/sw.js")
+    .then(() => console.log("SW Registered"))
+    .catch(err => console.log("SW error:", err));
+}
+let deferredPrompt;
+const installBtn = document.getElementById("installBtn");
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = "flex";
+});
+installBtn.addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.style.display = "none";
+});
+</script>
+</body>
+</html>

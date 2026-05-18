@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — SmartExpiry</title>
+<link rel="stylesheet" href="style1.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0f1e">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb3"></div>
+</div>
+<div class="grid-overlay"></div>
+
+<div class="auth-wrapper">
+  <!-- Left panel -->
+  <div class="auth-panel-left">
+    <div class="auth-brand" onclick="window.location.href='index.html'" style="cursor:pointer">
+      <div class="logo-mark">
+        <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="url(#g3)" stroke-width="2"/>
+          <path d="M16 8v8l5 3" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
+          <defs><linearGradient id="g3" x1="0" y1="0" x2="32" y2="32"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#22c55e"/></linearGradient></defs>
+        </svg>
+      </div>
+      <span class="brand-name">Smart<em>Expiry</em></span>
+    </div>
+    <div class="auth-tagline">
+      <h2>Join for free.</h2>
+      <p>Start tracking in 30 seconds.</p>
+    </div>
+    <div class="auth-features-list">
+      <div class="auth-feat"><span class="feat-check">✓</span> Free forever plan</div>
+      <div class="auth-feat"><span class="feat-check">✓</span> Unlimited products</div>
+      <div class="auth-feat"><span class="feat-check">✓</span> Instant cloud sync</div>
+    </div>
+  </div>
+
+  <!-- Right panel / Form -->
+  <div class="auth-card">
+    <h2 class="auth-title">Create Account</h2>
+    <p class="auth-subtitle">Start tracking your expiry dates today</p>
+
+    <div class="input-group">
+      <label>Email address</label>
+      <div class="input-wrap">
+        <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+        <input type="email" id="newUser" placeholder="you@email.com" autocomplete="email">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <input type="password" id="newPass" placeholder="min. 6 characters" autocomplete="new-password">
+        <button class="toggle-pass" onclick="togglePass('newPass', this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Password strength indicator -->
+    <div class="strength-bar">
+      <div class="strength-fill" id="strengthFill"></div>
+    </div>
+    <p class="strength-label" id="strengthLabel"></p>
+
+    <button class="btn-auth" onclick="signup()">
+      <span>Create Account</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+
+    <div id="authError" class="auth-error"></div>
+
+    <p class="auth-switch">Already have an account? <a href="login1.html">Sign in →</a></p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="javas/firebase.js"></script>
+<script src="javas/auth.js"></script>
+<script>
+function togglePass(id, btn) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+document.getElementById('newPass').addEventListener('input', function() {
+  const val = this.value;
+  const fill = document.getElementById('strengthFill');
+  const label = document.getElementById('strengthLabel');
+  let strength = 0;
+  if (val.length >= 6) strength++;
+  if (val.length >= 10) strength++;
+  if (/[A-Z]/.test(val)) strength++;
+  if (/[0-9]/.test(val)) strength++;
+  if (/[^A-Za-z0-9]/.test(val)) strength++;
+  const colors = ['#ef4444','#f97316','#facc15','#22c55e','#16a34a'];
+  const labels = ['Very weak','Weak','Fair','Strong','Very strong'];
+  fill.style.width = (strength * 20) + '%';
+  fill.style.background = colors[strength - 1] || 'transparent';
+  label.textContent = val.length > 0 ? labels[strength - 1] || '' : '';
+  label.style.color = colors[strength - 1] || 'transparent';
+});
+</script>
+</body>
+</html>
