@@ -6,7 +6,7 @@
 let items = [];
 let currentUser;
 let chart;
-let unsubscribe; // Firestore real-time listener
+let unsubscribe;
 
 // ---- AUTH GUARD ----
 auth.onAuthStateChanged(user => {
@@ -14,22 +14,27 @@ auth.onAuthStateChanged(user => {
     window.location.href = "login1.html";
   } else {
     currentUser = user.uid;
-    listenItems(); // real-time instead of one-time .get()
+    listenItems();
   }
 });
 
 // ---- REAL-TIME LISTENER ----
+// No .orderBy() here — avoids needing a Firestore composite index.
+// We sort locally after fetching.
 function listenItems() {
-  if (unsubscribe) unsubscribe(); // clean up old listener
+  if (unsubscribe) unsubscribe();
 
   unsubscribe = db.collection("items")
     .where("user", "==", currentUser)
-    .orderBy("date", "asc")
     .onSnapshot(snapshot => {
       items = [];
       snapshot.forEach(doc => {
         items.push({ id: doc.id, ...doc.data() });
       });
+
+      // Sort by date ascending locally
+      items.sort((a, b) => new Date(a.date) - new Date(b.date));
+
       displayItems();
       checkExpiryAlerts();
     }, err => {
@@ -40,33 +45,31 @@ function listenItems() {
 
 // ---- ADD ITEM ----
 function addItem() {
-  const name = document.getElementById("name").value.trim();
-  const date = document.getElementById("date").value;
+  const nameInput = document.getElementById("name");
+  const dateInput = document.getElementById("date");
+
+  const name = nameInput.value.trim();
+  const date = dateInput.value;
 
   if (!name) return showNotification("Please enter a product name.", "error");
   if (!date) return showNotification("Please select an expiry date.", "error");
-
-  // Prevent adding already-past dates (optional UX improvement)
-  const today = new Date();
-  today.setHours(0,0,0,0);
 
   const btn = document.querySelector(".btn-add");
   if (btn) { btn.disabled = true; btn.style.opacity = "0.6"; }
 
   db.collection("items").add({
-    name,
-    date,
-    user: currentUser,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    name:  name,
+    date:  date,
+    user:  currentUser
   })
   .then(() => {
-    document.getElementById("name").value = "";
-    document.getElementById("date").value = "";
+    nameInput.value = "";
+    dateInput.value = "";
     showNotification(`"${name}" added successfully!`, "success");
   })
   .catch(err => {
-    console.error(err);
-    showNotification("Failed to add item.", "error");
+    console.error("Add error:", err);
+    showNotification("Failed to add item: " + err.message, "error");
   })
   .finally(() => {
     if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
@@ -79,7 +82,10 @@ function deleteItem(id, name) {
 
   db.collection("items").doc(id).delete()
     .then(() => showNotification(`"${name}" removed.`, "success"))
-    .catch(() => showNotification("Failed to delete item.", "error"));
+    .catch(err => {
+      console.error("Delete error:", err);
+      showNotification("Failed to delete item.", "error");
+    });
 }
 
 // ---- DISPLAY ITEMS ----
@@ -88,18 +94,17 @@ function displayItems(filtered) {
   list.innerHTML = "";
 
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
   const source = filtered !== undefined ? filtered : items;
 
+  // Count stats from full items list
   let total = items.length;
   let fresh = 0, warning = 0, expired = 0;
 
-  // Always count from full items list for stats
   items.forEach(item => {
-    const expiry = new Date(item.date);
-    const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    if (diff < 0)      expired++;
+    const diff = Math.ceil((new Date(item.date) - today) / (1000 * 60 * 60 * 24));
+    if (diff < 0)       expired++;
     else if (diff <= 7) warning++;
     else                fresh++;
   });
@@ -111,11 +116,11 @@ function displayItems(filtered) {
 
   // Render cards
   if (source.length === 0) {
-    list.innerHTML = `<div class="empty-state">
-      <p style="color:var(--text2);font-size:14px;text-align:center;padding:40px 0;grid-column:1/-1;">
+    list.innerHTML = `
+      <p style="color:var(--text2);font-size:14px;text-align:center;
+                padding:40px 0;grid-column:1/-1;">
         No items found. Add your first product above!
-      </p>
-    </div>`;
+      </p>`;
   } else {
     source.forEach(item => {
       const expiry = new Date(item.date);
@@ -124,17 +129,18 @@ function displayItems(filtered) {
       let cls, badgeClass, statusText;
 
       if (diff < 0) {
-        cls = "expired";   badgeClass = "badge-expired"; statusText = "Expired";
+        cls = "expired";  badgeClass = "badge-expired"; statusText = "Expired";
       } else if (diff === 0) {
-        cls = "warning";   badgeClass = "badge-warning"; statusText = "Expires today!";
+        cls = "warning";  badgeClass = "badge-warning"; statusText = "Expires today!";
       } else if (diff <= 7) {
-        cls = "warning";   badgeClass = "badge-warning"; statusText = `${diff} day${diff===1?'':'s'} left`;
+        cls = "warning";  badgeClass = "badge-warning"; statusText = `${diff} day${diff === 1 ? "" : "s"} left`;
       } else {
-        cls = "fresh";     badgeClass = "badge-fresh";   statusText = `${diff} days left`;
+        cls = "fresh";    badgeClass = "badge-fresh";   statusText = `${diff} days left`;
       }
 
-      // Format date nicely
-      const displayDate = expiry.toLocaleDateString("en-US", { year:"numeric", month:"short", day:"numeric" });
+      const displayDate = expiry.toLocaleDateString("en-US", {
+        year: "numeric", month: "short", day: "numeric"
+      });
 
       list.innerHTML += `
       <div class="item ${cls}">
@@ -143,14 +149,13 @@ function displayItems(filtered) {
           <p class="item-date">📅 ${displayDate}</p>
         </div>
         <span class="item-badge ${badgeClass}">${statusText}</span>
-        <button class="item-delete" onclick="deleteItem('${item.id}', '${escapeHtml(item.name)}')">
+        <button class="item-delete" onclick="deleteItem('${item.id}', '${escapeHtml(item.name).replace(/'/g, "\\'")}')">
           🗑 Remove
         </button>
       </div>`;
     });
   }
 
-  // Update chart
   updateChart(fresh, warning, expired);
 }
 
@@ -212,7 +217,7 @@ function updateChart(fresh, warning, expired) {
 function filterList(query) {
   const q = query.toLowerCase().trim();
   if (!q) {
-    displayItems(); // show all
+    displayItems();
     return;
   }
   const filtered = items.filter(item =>
@@ -231,6 +236,7 @@ function showNotification(msg, type = "warning") {
   div.textContent = msg;
 
   box.appendChild(div);
+
   setTimeout(() => {
     div.style.opacity = "0";
     div.style.transform = "translateX(20px)";
@@ -242,21 +248,19 @@ function showNotification(msg, type = "warning") {
 // ---- EXPIRY ALERTS ----
 function checkExpiryAlerts() {
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
   items.forEach(item => {
-    const expiry = new Date(item.date);
-    const diff   = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-
+    const diff = Math.ceil((new Date(item.date) - today) / (1000 * 60 * 60 * 24));
     if (diff === 7) showNotification(`⚠️ ${item.name} expires in 7 days`, "warning");
     if (diff === 3) showNotification(`⚠️ ${item.name} expires in 3 days`, "warning");
     if (diff === 1) showNotification(`🚨 ${item.name} expires tomorrow!`, "warning");
     if (diff === 0) showNotification(`🚨 ${item.name} expires today!`, "error");
-    if (diff < 0)  showNotification(`❌ ${item.name} has expired`, "error");
+    if (diff < 0)   showNotification(`❌ ${item.name} has expired`, "error");
   });
 }
 
-// ---- HELPER: Prevent XSS ----
+// ---- XSS PROTECTION ----
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -266,7 +270,7 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-// ---- ENTER KEY: add item on Enter in name field ----
+// ---- ENTER KEY on name input ----
 document.addEventListener("DOMContentLoaded", () => {
   const nameInput = document.getElementById("name");
   if (nameInput) {
