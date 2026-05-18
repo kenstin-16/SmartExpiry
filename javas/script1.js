@@ -14,13 +14,12 @@ auth.onAuthStateChanged(user => {
     window.location.href = "login1.html";
   } else {
     currentUser = user.uid;
+    console.log("Logged in as:", user.email, "| UID:", user.uid);
     listenItems();
   }
 });
 
 // ---- REAL-TIME LISTENER ----
-// No .orderBy() here — avoids needing a Firestore composite index.
-// We sort locally after fetching.
 function listenItems() {
   if (unsubscribe) unsubscribe();
 
@@ -38,8 +37,8 @@ function listenItems() {
       displayItems();
       checkExpiryAlerts();
     }, err => {
-      console.error("Firestore error:", err);
-      showNotification("Error loading items.", "error");
+      console.error("Firestore listen error:", err.code, err.message);
+      showNotification("Error loading items: " + err.code, "error");
     });
 }
 
@@ -57,19 +56,35 @@ function addItem() {
   const btn = document.querySelector(".btn-add");
   if (btn) { btn.disabled = true; btn.style.opacity = "0.6"; }
 
+  console.log("Adding item:", { name, date, user: currentUser });
+
   db.collection("items").add({
-    name:  name,
-    date:  date,
-    user:  currentUser
+    name: name,
+    date: date,
+    user: currentUser
   })
-  .then(() => {
+  .then(docRef => {
+    console.log("Item added with ID:", docRef.id);
     nameInput.value = "";
     dateInput.value = "";
     showNotification(`"${name}" added successfully!`, "success");
   })
   .catch(err => {
-    console.error("Add error:", err);
-    showNotification("Failed to add item: " + err.message, "error");
+    console.error("Add failed — code:", err.code, "| message:", err.message);
+
+    // Show a specific message based on error code
+    let msg = "Failed to add item.";
+    if (err.code === "permission-denied") {
+      msg = "Permission denied. Please update your Firestore security rules.";
+    } else if (err.code === "unavailable") {
+      msg = "No internet connection.";
+    } else if (err.code === "unauthenticated") {
+      msg = "Session expired. Please log in again.";
+      setTimeout(() => window.location.href = "login1.html", 2000);
+    } else {
+      msg = "Error: " + err.message;
+    }
+    showNotification(msg, "error");
   })
   .finally(() => {
     if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
@@ -83,8 +98,8 @@ function deleteItem(id, name) {
   db.collection("items").doc(id).delete()
     .then(() => showNotification(`"${name}" removed.`, "success"))
     .catch(err => {
-      console.error("Delete error:", err);
-      showNotification("Failed to delete item.", "error");
+      console.error("Delete failed:", err.code, err.message);
+      showNotification("Failed to delete: " + err.code, "error");
     });
 }
 
@@ -98,7 +113,6 @@ function displayItems(filtered) {
 
   const source = filtered !== undefined ? filtered : items;
 
-  // Count stats from full items list
   let total = items.length;
   let fresh = 0, warning = 0, expired = 0;
 
@@ -114,7 +128,6 @@ function displayItems(filtered) {
   document.getElementById("warning").innerText = warning;
   document.getElementById("expired").innerText = expired;
 
-  // Render cards
   if (source.length === 0) {
     list.innerHTML = `
       <p style="color:var(--text2);font-size:14px;text-align:center;
@@ -216,13 +229,8 @@ function updateChart(fresh, warning, expired) {
 // ---- SEARCH FILTER ----
 function filterList(query) {
   const q = query.toLowerCase().trim();
-  if (!q) {
-    displayItems();
-    return;
-  }
-  const filtered = items.filter(item =>
-    item.name.toLowerCase().includes(q)
-  );
+  if (!q) { displayItems(); return; }
+  const filtered = items.filter(item => item.name.toLowerCase().includes(q));
   displayItems(filtered);
 }
 
@@ -234,7 +242,6 @@ function showNotification(msg, type = "warning") {
   const div = document.createElement("div");
   div.className = `toast ${type}`;
   div.textContent = msg;
-
   box.appendChild(div);
 
   setTimeout(() => {
@@ -242,7 +249,7 @@ function showNotification(msg, type = "warning") {
     div.style.transform = "translateX(20px)";
     div.style.transition = "0.3s";
     setTimeout(() => div.remove(), 300);
-  }, 3500);
+  }, 4000);
 }
 
 // ---- EXPIRY ALERTS ----
